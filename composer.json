@@ -22,5 +22,6 @@
     "psr-4": {
       "Inok\\Dbf2mysql\\": "src"
     }
-  }
+  },
+  "minimum-stability": "dev"
 }
