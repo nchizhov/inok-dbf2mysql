@@ -22,7 +22,7 @@ where **$config** is array of parameters
 * **dbf_path** - Path to DBF-files (**required**)
 * **dbf_list** - List of import DBF-files: *without extension, case-insensitive*. If **null** - import of all files from directory (default: **null**)
 * **table_prefix** - Add prefix for table name (default: **null**) 
-* **key_field** - Adds index to MySQL table after import (default: **null**, required if **update** - True)
+* **key_field** - Adds index to MySQL table after import (default: **null**)
 * **columns_only** - Imports only columns from DBF-file (default: **false**)
 * **deleted_records** - Import marked for deletion records: *creating column with name '**deleted**'* (default: **false**)
 * **verbose** - Show import process in console (default: **true**)
