@@ -1,0 +1,26 @@
+{
+  "name": "inok/dbf2mysql",
+  "description": "Package for converting DBASE-files to MySQL",
+  "keywords": ["dbf", "mysql", "converter", "dbase", "foxpro"],
+  "homepage": "http://blog.kgd.in",
+  "type": "library",
+  "license": "MIT",
+  "version": "1.0.0",
+  "authors": [
+     {
+       "name": "Chizhov Nikolay",
+       "email": "admin@kgd.in",
+       "homepage": "http://blog.kgd.in",
+       "role": "System Administrator"
+     }
+  ],
+  "require": {
+    "php": ">=5.6",
+    "inok/dbf": "dev-master"
+  },
+  "autoload": {
+    "psr-4": {
+      "Inok\\Dbf2mysql\\": "src"
+    }
+  }
+}
