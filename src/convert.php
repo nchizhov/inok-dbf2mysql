@@ -62,7 +62,7 @@ class convert {
       "db_port"         => 3306,
       "db_username"     => "root",
       "db_password"     => "",
-      "db_charset"      => "utf8",
+      "db_charset"      => "utf-8",
       "dbf_list"        => null,
       "table_prefix"    => null,
       "columns_only"    => false,
@@ -73,6 +73,8 @@ class convert {
     ];
 
     $this->config = $this->config + $config_defaults;
+
+    $this->config["db_charset2"] = str_replace("-", "", $this->config["db_charset"]);
 
     $this->initLog();
 
@@ -132,7 +134,7 @@ class convert {
       exit;
     }
 
-    $this->db->exec("SET NAMES ".$this->config["db_charset"]);
+    $this->db->exec("SET NAMES ".$this->config["db_charset2"]);
   }
 
   private function convert() {
@@ -207,7 +209,7 @@ class convert {
       $result = $this->db->exec("CREATE TABLE IF NOT EXISTS `".$this->dbfHeaders["table"]."` (".
                                   implode(", ", $line).
                                 ") ENGINE=InnoDB DEFAULT 
-                                 CHARSET=".$this->config["db_charset"]." 
+                                 CHARSET=".$this->config["db_charset2"]." 
                                  COMMENT='Converted DBF file: ".$this->dbfHeaders["table"].".dbf'");
       if ($result !== false) {
         $this->writeLog("Table <yellow>".$this->dbfHeaders["table"]."<default> successfully created");
