@@ -19,6 +19,7 @@ where **$config** is array of parameters
 * **db_password** - MySQL User Password (default: **empty**)
 * **db_name** - MySQL Database name: *should exists* (**required**)
 * **db_charset** - MySQL Table Charset (default: **utf-8**)
+* **dbf_charset** - DBF-file charset for tables without defined encoding (default: **866**)
 * **dbf_path** - Path to DBF-files (**required**)
 * **dbf_list** - List of import DBF-files: *without extension, case-insensitive*. If **null** - import of all files from directory (default: **null**)
 * **table_prefix** - Add prefix for table name (default: **null**) 

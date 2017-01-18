@@ -64,6 +64,7 @@ class convert {
       "db_password"     => "",
       "db_charset"      => "utf-8",
       "dbf_list"        => null,
+      "dbf_charset"     => 866,
       "table_prefix"    => null,
       "columns_only"    => false,
       "deleted_records" => false,
@@ -95,6 +96,10 @@ class convert {
       $this->config["table_prefix"] = "";
     }
     //check dbf
+    if (!is_numeric($this->config["dbf_charset"])) {
+      $this->writeLog("<red>Error in config:<default> DBF-charset should be number");
+      exit;
+    }
     if (!is_null($this->config["dbf_list"])) {
       if (is_array($this->config["dbf_list"])) {
         $this->config["dbf_list"] = array_map("strtolower", $this->config["dbf_list"]);
@@ -144,7 +149,7 @@ class convert {
         continue;
       }
       $this->timer["tableStart"] = time();
-      $table = new Table($file->getPathname());
+      $table = new Table($file->getPathname(), $this->config["dbf_charset"]);
       $this->dbfHeaders = $table->getHeaders();
       if ($table->error) {
         $this->writeLog("<red>Error in DBF:<default> ".$table->error_info);
