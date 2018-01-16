@@ -131,7 +131,7 @@ class convert {
       \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC
     ];
     try {
-      $this->db = new \PDO("mysql:host=" . $this->config["db_host"] . ";dbname=" . $this->config["db_name"],
+      $this->db = new \PDO("mysql:host=" . $this->config["db_host"] . ";port=" . $this->config["db_port"] . ";dbname=" . $this->config["db_name"],
                            $this->config["db_username"], $this->config["db_password"], $db_options);
     }
     catch (\PDOException $e) {
