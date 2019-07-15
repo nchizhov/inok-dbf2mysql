@@ -3,17 +3,21 @@
  * DBF to MySQL Converter
  *
  * Author: Chizhov Nikolay <admin@kgd.in>
- * (c) 2016 CIOB "Inok"
+ * (c) 2019 CIOB "Inok"
  ********************************************/
 
 namespace Inok\Dbf2mysql;
 
+use DirectoryIterator;
 use \Inok\Dbf\Table;
 use \Inok\Dbf\Records;
+use PDO;
+use PDOException;
+use RegexIterator;
 
 class convert {
   /**
-   * @var \PDO
+   * @var PDO
    */
   private $db;
 
@@ -127,14 +131,14 @@ class convert {
 
   private function dbConnect() {
     $db_options = [
-      \PDO::ATTR_ERRMODE => \PDO::ERRMODE_WARNING,
-      \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC
+      PDO::ATTR_ERRMODE => PDO::ERRMODE_WARNING,
+      PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
     ];
     try {
-      $this->db = new \PDO("mysql:host=" . $this->config["db_host"] . ";dbname=" . $this->config["db_name"],
+      $this->db = new PDO("mysql:host=" . $this->config["db_host"] . ";dbname=" . $this->config["db_name"],
                            $this->config["db_username"], $this->config["db_password"], $db_options);
     }
-    catch (\PDOException $e) {
+    catch (PDOException $e) {
       $this->writeLog("<red>Error in MySQL connection:<default> ".$e->getMessage());
       exit;
     }
@@ -143,7 +147,7 @@ class convert {
   }
 
   private function convert() {
-    $dbfs = new \RegexIterator(new \DirectoryIterator($this->config["dbf_path"]), "/\\.dbf\$/i");
+    $dbfs = new RegexIterator(new DirectoryIterator($this->config["dbf_path"]), "/\\.dbf\$/i");
     foreach ($dbfs as $file) {
       if (!is_null($this->config["dbf_list"]) && !in_array(strtolower($file->getBasename(".".$file->getExtension())), $this->config["dbf_list"])) {
         continue;
@@ -177,13 +181,16 @@ class convert {
     foreach ($this->dbfColumns as $column) {
       $name = "`".$column["name"]."`";
       switch ($column["type"]) {
+        case "I":
         case "F":
         case "N":
+        case "Y":
+        case "0":
           if ($column["decimal"]) {
-            $line[] = $name." decimal(".($column["length"] + $column["decimal"]).", ".$column["decimal"].") NOT NULL DEFAULT 0";
+            $line[] = $name." decimal(".($column["length"] + $column["decimal"]).", ".$column["decimal"].") NULL DEFAULT 0";
           }
           else {
-            $line[] = $name." bigint(".$column["length"].") NOT NULL DEFAULT 0";
+            $line[] = $name." bigint(".$column["length"].") NULL DEFAULT 0";
           }
           break;
         case "D":
@@ -193,10 +200,10 @@ class convert {
           $line[] = $name." datetime DEFAULT NULL";
           break;
         case "L":
-          $line[] = $name." tinyint(1) NOT NULL DEFAULT '0'";
+          $line[] = $name." tinyint(1) NULL DEFAULT '0'";
           break;
         case "C":
-          $line[] = $name." varchar(".$column["length"].") NOT NULL DEFAULT ''";
+          $line[] = $name." varchar(".$column["length"].") NULL DEFAULT ''";
           break;
         case "M":
           $line[] = $name." text NOT NULL DEFAULT ''";
@@ -227,75 +234,87 @@ class convert {
   }
 
   private function writeRecords() {
-    if (count($this->dbfColumns)) {
-      $this->writeLog("Init import records for table <yellow>".$this->dbfHeaders["table"]."<default>");
-      $i = 0; $recordsPerPosition = $this->dbfHeaders["records"] / 50;
-      $this->column_fixes = [];
-      $sql_keys = [];
-      $sql_values = [];
-      foreach($this->dbfColumns as $column) {
-        $sql_keys[] = "`".$column["name"]."`";
-        $sql_values[] = ":".$column["name"];
-        if (in_array($column["type"], ["F", "N"])) {
-          $this->column_fixes[$column["name"]] = [
-            "min" => 0,
-            "max" => 0
-          ];
-        }
+    if (!count($this->dbfColumns)) {
+      return;
+    }
+    $this->writeLog("Init import records for table <yellow>".$this->dbfHeaders["table"]."<default>");
+    $i = 0; $recordsPerPosition = $this->dbfHeaders["records"] / 50;
+    $this->column_fixes = [];
+    $sql_keys = [];
+    $sql_values = [];
+    foreach($this->dbfColumns as $column) {
+      $sql_keys[] = "`".$column["name"]."`";
+      $sql_values[] = ":".$column["name"];
+      if (in_array($column["type"], ["F", "N", "I", "Y", "0"])) {
+        $this->column_fixes[$column["name"]] = [
+          "min" => 0,
+          "max" => 0
+        ];
       }
+    }
+    if ($this->config["deleted_records"]) {
+      $sql_keys[] = "`deleted`";
+      $sql_values[] = ":deleted";
+    }
+    $result = $this->db->prepare("INSERT INTO `".$this->dbfHeaders["table"]."` (".implode(", ", $sql_keys).") 
+                                  VALUES(".implode(", ", $sql_values).")");
+    $this->db->beginTransaction();
+    while ($record = $this->dbfRecords->nextRecord()) {
+      $record = $this->prepareRecord($record);
+      $deleted = false;
       if ($this->config["deleted_records"]) {
-        $sql_keys[] = "`deleted`";
-        $sql_values[] = ":deleted";
+        $result->execute($record);
       }
-      $result = $this->db->prepare("INSERT INTO `".$this->dbfHeaders["table"]."` (".implode(", ", $sql_keys).") VALUES(".implode(", ", $sql_values).")");
-      $this->db->beginTransaction();
-      while ($record = $this->dbfRecords->nextRecord()) {
-        $deleted = false;
-        if ($this->config["deleted_records"]) {
+      else {
+        if (!$record["deleted"]) {
+          unset($record["deleted"]);
           $result->execute($record);
         }
         else {
-          if (!$record["deleted"]) {
-            unset($record["deleted"]);
-            $result->execute($record);
-          }
-          else {
-            $deleted = true;
-          }
-        }
-
-        if (!$deleted) {
-          foreach ($this->column_fixes as $c_name => &$vals) {
-            if ($vals["min"] > $record[$c_name]) {
-              $vals["min"] = $record[$c_name];
-            }
-            if ($vals["max"] < $record[$c_name]) {
-              $vals["max"] = $record[$c_name];
-            }
-          }
-        }
-
-        $i++;
-        if ($this->config["verbose"]) {
-          $this->drawStatus($i, $recordsPerPosition);
+          $deleted = true;
         }
       }
-      $this->db->commit();
 
-      //Fix max values
-      $this->fixValues();
+      if (!$deleted) {
+        foreach ($this->column_fixes as $c_name => &$vals) {
+          if ($vals["min"] > $record[$c_name]) {
+            $vals["min"] = $record[$c_name];
+          }
+          if ($vals["max"] < $record[$c_name]) {
+            $vals["max"] = $record[$c_name];
+          }
+        }
+      }
 
-      $this->writeLog("Table <yellow>".$this->dbfHeaders["table"]."<default> successfully imported in <red>".
-                       round((time() - $this->timer["tableStart"]) / 60, 2)."<default> minutes");
-      unset($sql_keys, $sql_values);
+      $i++;
+      if ($this->config["verbose"]) {
+        $this->drawStatus($i, $recordsPerPosition);
+      }
     }
+    $this->db->commit();
+
+    //Fix max values
+    $this->fixValues();
+
+    $this->writeLog("Table <yellow>".$this->dbfHeaders["table"]."<default> successfully imported in <red>".
+                     round((time() - $this->timer["tableStart"]) / 60, 2)."<default> minutes");
+    unset($sql_keys, $sql_values);
+  }
+
+  private function prepareRecord($record) {
+    foreach ($record as $name => $value) {
+      if (is_bool($value)) {
+        $record[$name] = (int) $value;
+      }
+    }
+    return $record;
   }
 
   private function fixValues() {
     $this->writeLog("\nCaclulate column types for table <yellow>".$this->dbfHeaders["table"]."<default>");
     $lines = [];
     foreach ($this->dbfColumns as $column) {
-      if (in_array($column["type"], ["F", "N"])) {
+      if (in_array($column["type"], ["F", "N", "I", "Y", "0"])) {
         $result = $this->column_fixes[$column["name"]];
         $unsigned = !($result["min"] < 0);
         if ($unsigned) {
@@ -328,11 +347,11 @@ class convert {
         }
         if ($column["decimal"] && $unsigned) {
           $lines[] = "CHANGE `".$column["name"]."` `".$column["name"]."` decimal(".($column["length"] + $column["decimal"]).", ".$column["decimal"].") UNSIGNED  
-                      NOT NULL DEFAULT '0'";
+                      NULL DEFAULT '0'";
         }
         else {
           $lines[] = "CHANGE `".$column["name"]."` `".$column["name"]."` ".$type."(".$column["length"].")".($unsigned ? " UNSIGNED" : "")." 
-                      NOT NULL DEFAULT '0'";
+                      NULL DEFAULT '0'";
         }
       }
     }
