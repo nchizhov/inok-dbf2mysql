@@ -311,10 +311,10 @@ class convert {
   }
 
   private function fixValues() {
-    $this->writeLog("\nCaclulate column types for table <yellow>".$this->dbfHeaders["table"]."<default>");
+    $this->writeLog("\nCalculate column types for table <yellow>".$this->dbfHeaders["table"]."<default>");
     $lines = [];
     foreach ($this->dbfColumns as $column) {
-      if (in_array($column["type"], ["F", "N", "I", "Y", "0"])) {
+      if (in_array($column["type"], ["F", "N",  "I", "Y", "0"])) {
         $result = $this->column_fixes[$column["name"]];
         $unsigned = !($result["min"] < 0);
         if ($unsigned) {
