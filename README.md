@@ -1,5 +1,10 @@
 ## DBF to MySQL import
 
+[![License](https://poser.pugx.org/inok/dbf2mysql/license)](https://packagist.org/packages/inok/dbf2mysql)
+[![License](https://poser.pugx.org/inok/dbf2mysql/v/stable)](https://packagist.org/packages/inok/dbf2mysql)
+[![License](https://poser.pugx.org/inok/dbf2mysql/d/monthly)](https://packagist.org/packages/inok/dbf2mysql)
+[![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/nchizhov/inok-dbf2mysql/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/nchizhov/inok-dbf2mysql/?branch=master)
+
 ### Description
 This package converts DBASE/FoxPro files into MySQL tables. 
 
@@ -36,4 +41,5 @@ where **$config** is array of parameters
 4. MEMO-fields imports into TEXT-fields
  
 #### License
-MIT 
+
+This package is released under the __MIT license__.
