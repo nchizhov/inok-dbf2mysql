@@ -2,15 +2,15 @@
   "name": "inok/dbf2mysql",
   "description": "Package for converting DBASE-files to MySQL",
   "keywords": ["dbf", "mysql", "converter", "dbase", "foxpro"],
-  "homepage": "http://blog.kgd.in",
+  "homepage": "https://blog.kgd.in",
   "type": "library",
   "license": "MIT",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "authors": [
      {
        "name": "Chizhov Nikolay",
        "email": "admin@kgd.in",
-       "homepage": "http://blog.kgd.in",
+       "homepage": "https://blog.kgd.in",
        "role": "System Administrator"
      }
   ],
